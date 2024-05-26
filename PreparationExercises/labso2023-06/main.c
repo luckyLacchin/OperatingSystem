@@ -7,30 +7,32 @@
 #include <sys/stat.h>
 #include <pthread.h>
 #include <signal.h>
+#include <unistd.h>
+#include <stdlib.h>
 
 #define MAX_SIZE 255
 
 int newCommand = 0;
 
-struct mymsg
+typedef struct
 {
     long mtype;    /* Message type. */
     char mtext[1]; /* Message text. */
 } queueMsg;
 
-struct killStruct
+typedef struct
 {
     int sign;
     pid_t pid;
 } killPayload;
 
-struct queueStruct
+typedef struct
 {
     queueMsg msg;
     char queuePath[MAX_SIZE];
 } queuePayload;
 
-struct fifoStruct
+typedef struct
 {
     char fifoPath[MAX_SIZE];
     char word[MAX_SIZE];
@@ -44,7 +46,7 @@ void *killThread(void *param)
     while (1)
     {
         if(newCommand == 1) {
-            kill(payload.pid, payload.sign);
+            kill(payload->pid, payload->sign);
             newCommand = 0;
         }
     }
@@ -54,14 +56,14 @@ void *queueThread(void *param)
 {
     queuePayload *payload = (queuePayload *)param;
 
-    key_t key = ftok(payload.queuePath); // maybe i should check if the path exists?! Nothing is said
+    key_t key = ftok(payload->queuePath,1); // maybe i should check if the path exists?! Nothing is said
 
     int queue = msgget(key, 0777 | IPC_CREAT); // i think that we should only put this flag!
 
     while (1)
     {
         if(newCommand == 1) {
-            msgsnd(queue, &payload.queuePath, sizeof(msg), 0);
+            msgsnd(queue, &payload->msg, sizeof(payload->msg), 0);
             newCommand = 0;
         }
     }
@@ -73,9 +75,9 @@ void *fifoThread(void *param)
     while (1)
     {
         if(newCommand == 1) {
-            mkfifo(payload.fifoPath, 00600);
-            int fd = open(payload.fifoPath, O_RDWR);
-            write(fd, fifoLoad.word, strlen(fifoLoad.word));
+            mkfifo(payload->fifoPath, 00600);
+            int fd = open(payload->fifoPath, O_RDWR);
+            write(fd, payload->word, strlen(payload->word));
             newCommand = 0;
         }
     }
@@ -103,15 +105,15 @@ int main(int argc, char *argv[])
     queueMsg msg;
 
     killPayload killLoad = {0, 0};
-    queuePayload queueLoad = {NULL, NULL};
+    queuePayload queueLoad = {{0,0}, 0};
     strcpy(queueLoad.queuePath, path);
-    fifoPayload fifoLoad = {NULL, NULL};
+    fifoPayload fifoLoad = {0, 0};
 
     struct sigaction sg;
-    sg.sa_handler(myHandler);
+    sg.sa_handler = myHandler;
     sg.sa_flags = 0; //Initialise flags
     sigemptyset(&sg.sa_mask); //Define an empty mask
-    sigaction(SIGUSR1,&sa,NULL);
+    sigaction(SIGUSR1,&sg,NULL);
 
     //Create a new signal mask for the threads, so that they will block SIGUSR1
     sigset_t setBlocked;
@@ -142,14 +144,14 @@ int main(int argc, char *argv[])
             }
             else if (strcmp(buffer[0], "queue"))
             {
-                strcpy(msg.mtext, buffer[2])
-                    msg.mtype = buffer[1];
+                strcpy(msg.mtext, buffer[2]);
+                msg.mtype = atoi(buffer[1]);
                 queueLoad.msg = msg; // it should work properly
             }
             else if (strcmp(buffer[0], "fifo"))
             {
-                strcpy(fifoLoad.fifoPath, buffer[1])
-                    strcpy(fifoLoad.word, buffer[2])
+                strcpy(fifoLoad.fifoPath, buffer[1]);
+                strcpy(fifoLoad.word, buffer[2]);
             }
         }
         else {
