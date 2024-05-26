@@ -9,11 +9,11 @@
 # Defining the SHELL variable will change the shell used for the recipies
 SHELL := /bin/bash
 # Default value of folder
-FOLDER := /tmp
+FOLDER := '/tmp'
 
 help:
-	@echo "make -f mf-backup backup FOLDER=<path>"
-	@echo "make -f mf-backup restore FOLDER=<path>"
+	@echo "make -f mf-backup backup FOLDER="/code""
+	@echo "make -f mf-backup restore FOLDER="/lol""
 
 
 
