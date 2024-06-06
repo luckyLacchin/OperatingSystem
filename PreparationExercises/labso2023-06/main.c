@@ -136,19 +136,19 @@ int main(int argc, char *argv[])
         if(newCommand == 1) {
             fscanf(file, "%s %s %s", buffer[0], buffer[1], buffer[2]);
 
-            if (strcmp(buffer[0], "kill"))
+            if (strcmp(buffer[0], "kill") == 0)
             {
 
                 killLoad.sign = atoi(buffer[1]);
                 killLoad.pid = atoi(buffer[2]);
             }
-            else if (strcmp(buffer[0], "queue"))
+            else if (strcmp(buffer[0], "queue") == 0)
             {
                 strcpy(msg.mtext, buffer[2]);
                 msg.mtype = atoi(buffer[1]);
                 queueLoad.msg = msg; // it should work properly
             }
-            else if (strcmp(buffer[0], "fifo"))
+            else if (strcmp(buffer[0], "fifo") == 0)
             {
                 strcpy(fifoLoad.fifoPath, buffer[1]);
                 strcpy(fifoLoad.word, buffer[2]);
