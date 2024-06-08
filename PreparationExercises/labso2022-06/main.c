@@ -24,15 +24,15 @@ int main (int argc, char *argv[]) {
     char name [MAX_LENGTH];;
     errno = 0;
     char action [MAX_LENGTH];
-    char value  [MAX_LENTH];
+    char value  [MAX_LENGTH];
     pid_t pidInput;
     int queue;
+    key_t key = ftok(name,1);
     msgBuf msg;
     strcpy (action, argv[2]);
     strcpy (name, argv[1]);
 
     if (strcmp(action,"new") == 0) {
-        key_t key = ftok(name,1);
         queue = msgget (key, 0777 | IPC_CREAT | IPC_EXCL); //it is very important to remember to put the permission bits!!!
 
         if (queue == -1) { //it means that was already previously created
@@ -44,7 +44,7 @@ int main (int argc, char *argv[]) {
     else if (strcmp(action,"put") == 0) {
         if (argc != 5) {
             fprintf(stderr, "With put we need 4 paramters, because we need also the <value>");
-            exit(1):
+            exit(1);
         }
         queue = msgget (key, 0777 | IPC_CREAT);
         strcpy(msg.mtext,argv[3]);
@@ -54,7 +54,7 @@ int main (int argc, char *argv[]) {
     }else if (strcmp(action,"get") == 0) {
         //ssize_t msgrcv(int msqid, void *msgp, size_t msgsz, long msgtyp,int msgflg);
         queue = msgget (key, 0777 | IPC_CREAT );
-        msgrcv(queue,&msg,sizeof(msg.mtext),NULL,0);
+        msgrcv(queue,&msg,sizeof(msg.mtext),0,0);
         fprintf(stdout, "Get stampa %s dopo il comando prec\n", msg.mtext);
     }else if (strcmp(action,"del") == 0) {
         queue = msgget (key, 0777 | IPC_CREAT | IPC_EXCL);
@@ -64,10 +64,31 @@ int main (int argc, char *argv[]) {
         }
     }else if (strcmp(action,"emp") == 0) {
         queue = msgget (key, 0777 | IPC_CREAT );
-        while (msgrcv(queue,&msg,sizeof(msg.mtext),NULL,IPC_NOWAIT) != -1) {
-            //vuol dire che posso leggere il messaggio
+        while (msgrcv(queue,&msg,sizeof(msg.mtext),0,IPC_NOWAIT) != -1) {
+            //vuol dire che posso leggere il messaggio, perché c'è nella mia coda
             fprintf(stdout, "%s\n", msg.mtext); //stampiamo i messaggi riga per riga
         }
+    }
+    else if (strcmp(action,"mov") == 0) {
+        if (argc != 5) {
+            fprintf(stderr, "With put we need 4 paramters, because we need also the <value>");
+            exit(1);
+        }
+        queue = msgget (key, 0777 | IPC_CREAT | IPC_EXCL);
+        if (queue != -1) {
+            fprintf(stderr, "Errore: la coda non esiste!");
+            exit(2);
+        }
+        queue = msgget (key, 0777 | IPC_CREAT);
+        key_t key2 = ftok(argv[3],1);
+        int queue2 = msgget (key, 0777 | IPC_CREAT);
+        while (msgrcv(queue,&msg,sizeof(msg.mtext),0,IPC_NOWAIT) != -1) {
+            //vuol dire che posso leggere il messaggio, perché c'è nella mia coda
+            fprintf(stdout, "%s\n", msg.mtext); //stampiamo i messaggi riga per riga
+            msgsnd(queue2,&msg,sizeof(msg.mtext),0);
+            //non credo che serva mettere msg = NULL alla fine del ciclo
+        }
+
     }
 
     return 0;
